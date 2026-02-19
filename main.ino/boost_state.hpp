@@ -10,4 +10,3 @@ public:
 private:
     float startZ = 0.0f;
 };
-

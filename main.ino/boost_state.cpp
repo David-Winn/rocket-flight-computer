@@ -4,7 +4,7 @@
 #include <Arduino.h>
 
 // Motor burnout detected when vertical acceleration falls below this threshold
-static constexpr float BURNOUT_ACCEL_THRESHOLD = 5.0f; // m/s²
+static constexpr float BURNOUT_ACCEL_THRESHOLD = 5.0f; // m/s^2
 static constexpr int BURNOUT_CONSECUTIVE = 5;          // Require 5 consecutive low readings 
 
 int consecutiveLowAccel = 0;
@@ -12,6 +12,9 @@ int consecutiveLowAccel = 0;
 void BoostState::enter(FlightContext &ctx)
 {
     Serial.println(F("[STATE] Boost enter"));
+    ctx.logBegin();
+    ctx.logPrintln(F("[STATE] Boost enter"));
+    ctx.logEnd();
     startZ = ctx.zA;
 }
 
@@ -34,7 +37,15 @@ void BoostState::update(FlightContext &ctx)
         Serial.print(F("[EVENT] Motor burnout -> CoastState"));
         Serial.print(F(" | accel: "));
         Serial.print(ctx.zA, 2);
-        Serial.println(F(" m/s²"));
+        Serial.println(F(" m/s^2"));
+
+        ctx.logBegin();
+        ctx.logPrint(F("[EVENT] Motor burnout -> CoastState"));
+        ctx.logPrint(F(" | accel: "));
+        ctx.logPrint(ctx.zA, 2);
+        ctx.logPrintln(F(" m/s^2"));
+        ctx.logEnd();
+
         ctx.setState(ctx.coastState);
     }
 }
@@ -42,4 +53,7 @@ void BoostState::update(FlightContext &ctx)
 void BoostState::exit(FlightContext &ctx)
 {
     Serial.println(F("[STATE] Boost exit"));
+    ctx.logBegin();
+    ctx.logPrintln(F("[STATE] Boost exit"));
+    ctx.logEnd();
 }

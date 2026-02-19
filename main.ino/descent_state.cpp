@@ -8,18 +8,18 @@
 // Parachute deployment threshold
 static constexpr float DEPLOY_DISTANCE = 0;
 
-// Time based parachute deployment failsafe
-static constexpr unsigned long DEPLOY_FAILSAFE_MS = 15000;  // 15 seconds
-
 
 // Velocity must be very low and acceleration near gravity
 static constexpr float LANDING_VELOCITY_THRESHOLD = 1.0f;  // m/s
-static constexpr float LANDING_ACCEL_THRESHOLD = 10f;    // m/s² (close to 1g)
+static constexpr float LANDING_ACCEL_THRESHOLD = 10.0f;    // m/s^2 (close to 1g)
 static constexpr int LANDING_CONSECUTIVE = 10;             
 
 
 void DescentState::enter(FlightContext& ctx) {
     Serial.println(F("[STATE] Descent enter"));
+    ctx.logBegin();
+    ctx.logPrintln(F("[STATE] Descent enter"));
+    ctx.logEnd();
     lastAlt = ctx.zA; 
 
     parachuteDeployed = false;
@@ -29,7 +29,6 @@ void DescentState::enter(FlightContext& ctx) {
     distanceAlg.reset();
     lastUpdateMicros = micros();
 }
-
 
 void DescentState::update(FlightContext& ctx) {
 
@@ -48,9 +47,9 @@ void DescentState::update(FlightContext& ctx) {
     // Deploy parachute after falling DEPLOY_DISTANCE meters
     if (!parachuteDeployed && distanceFallen >= DEPLOY_DISTANCE) {
 
-        digitalWrite(5, HIGH);
+        digitalWrite(PARACHUTE_PIN, HIGH);
         delay(100);
-        digitalWrite(5, LOW);
+        digitalWrite(PARACHUTE_PIN, LOW);
 
         Serial.println(F("========================================"));
         Serial.println(F("[EVENT] PARACHUTE DEPLOYMENT!"));
@@ -62,32 +61,21 @@ void DescentState::update(FlightContext& ctx) {
         Serial.println(F("m/s"));
         Serial.println(F("========================================"));
 
+        ctx.logBegin();
+        ctx.logPrintln(F("========================================"));
+        ctx.logPrintln(F("[EVENT] PARACHUTE DEPLOYMENT!"));
+        ctx.logPrint(F("[INFO] Distance fallen: "));
+        ctx.logPrint(distanceFallen, 2);
+        ctx.logPrintln(F("m"));
+        ctx.logPrint(F("[INFO] Velocity: "));
+        ctx.logPrint(velocity, 2);
+        ctx.logPrintln(F("m/s"));
+        ctx.logPrintln(F("========================================"));
+        ctx.logEnd();
+
+        ctx.failsafeArmed = false;
         parachuteDeployed = true;
     }
-
-    // Time delay failsafe if distance calculation fails to deply parachute 
-    unsigned long timeSinceDescent = millis() - entryMs;
-    if (!parachuteDeployed && timeSinceDescent >= DEPLOY_FAILSAFE_MS) {
-
-        digitalWrite(5, HIGH);
-        delay(100);
-        digitalWrite(5, LOW);
-
-        Serial.println(F("========================================"));
-        Serial.print(F("[EVENT] Parachute deployment FAILSAFE"));
-        Serial.print(F(" | time: "));
-        Serial.print(timeSinceDescent);
-        Serial.print(F(" ms | distance_fallen: "));
-        Serial.print(distanceFallen, 2);
-        Serial.print(F(" m | velocity: "));
-        Serial.print(velocity, 2);
-        Serial.println(F(" m/s"));
-        Serial.println(F("========================================"));
-        
-        parachuteDeployed = true;
-    }
-
-    Serial.println(F("[EVENT] Landing detected -> LandedState"));
 
     // Detect landing 
     float accelMagnitude = abs(ctx.zA);
@@ -108,6 +96,15 @@ void DescentState::update(FlightContext& ctx) {
         Serial.print(distanceFallen, 2);
         Serial.println(F(" m"));
 
+        ctx.logBegin();
+        ctx.logPrint(F("[EVENT] Landing detected -> LandedState"));
+        ctx.logPrint(F(" | velocity: "));
+        ctx.logPrint(velocity, 2);
+        ctx.logPrint(F(" m/s | distance_fallen: "));
+        ctx.logPrint(distanceFallen, 2);
+        ctx.logPrintln(F(" m"));
+        ctx.logEnd();
+
         ctx.setState(ctx.landedState);
     }
 
@@ -115,5 +112,7 @@ void DescentState::update(FlightContext& ctx) {
 
 void DescentState::exit(FlightContext& ctx) {
     Serial.println(F("[STATE] Descent exit"));
+    ctx.logBegin();
+    ctx.logPrintln(F("[STATE] Descent exit"));
+    ctx.logEnd();
 }
-

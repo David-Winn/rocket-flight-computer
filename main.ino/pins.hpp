@@ -3,7 +3,7 @@
 #define LED0 2
 #define BUTTON 3
 #define LED1 4
-#define RELAY_0 5
+#define PARACHUTE_PIN 5
 #define LED2 6
 #define LAUNCHBUTTON 7
 #define LED3 8
