@@ -9,4 +9,7 @@ public:
 
 private:
     float startZ = 0.0f;
+    int stage = 1;
+    int consecutiveLowAccel = 0;
+    unsigned long ignitionStartTime = 0.0f;
 };

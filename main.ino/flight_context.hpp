@@ -4,6 +4,15 @@
 #include "pins.hpp"
 #include "flight_state.hpp"
 
+
+static constexpr int TELEMETRY_BUFFER_SIZE = 100;
+
+struct TelemSample {
+    float xA, yA, zA;
+    float xG, yG, zG;
+    unsigned long timestamp;
+};
+
 class FlightContext {
 public:
     FlightContext();
@@ -21,7 +30,7 @@ public:
 
     char fileName[20]; 
     
-    bool collecting = true;
+    bool collecting = false;
 
     /* State machine */
     FlightState* currentState;
@@ -36,7 +45,6 @@ public:
     class LandedState*    landedState;
 
     /* Failsafe members*/
-    static const unsigned long FAILSAFE_TIMEOUT = 20000; // seconds
     unsigned long launchTime;
     bool failsafeArmed;
     bool failsafeTriggered;
@@ -44,7 +52,9 @@ public:
     /* Hardware logic */
     void initHardware();
     void readSensors();
-    void writeTelemetry();
+    void bufferTelemetry();
+    void flushTelemetry();
+    void stopTelemetry();
     void tick();
 
     /* State machine control */
@@ -68,4 +78,11 @@ public:
 
 private:
     unsigned long lastTickMicros;
+
+    TelemSample buffer[TELEMETRY_BUFFER_SIZE];
+    int bufferCount;
+
+public:
+    bool isBufferFull() const { return bufferCount >= TELEMETRY_BUFFER_SIZE; }
+
 };

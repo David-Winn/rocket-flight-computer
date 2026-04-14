@@ -3,15 +3,12 @@
 #include "flight_context.hpp"
 #include "descent_state.hpp"
 #include "distance_alg.hpp"
+#include "flight_config.hpp"
 #include <Arduino.h>
 
 
-// Wait this long at apogee before transitioning to descent
-// Gives time to stabilize and prepare for parachute deployment
-static constexpr unsigned long APOGEE_DWELL_MS = 500;  // 500ms
-
 void ApogeeState::enter(FlightContext& ctx) {
-    Serial.println(F("[STATE] Apogee enter"));
+    // Serial.println(F("[STATE] Apogee enter"));
     ctx.logBegin();
     ctx.logPrintln(F("[STATE] Apogee enter"));
     ctx.logEnd();
@@ -38,12 +35,12 @@ void ApogeeState::update(FlightContext& ctx) {
 
         unsigned long timeAtApogee = millis() - entryMs;
     if (timeAtApogee >= APOGEE_DWELL_MS) {
-        Serial.print(F("[EVENT] Descent detected -> DescentState"));
-        Serial.print(F(" | distance_fallen: "));
-        Serial.print(distanceFallen, 2);
-        Serial.print(F(" m | velocity: "));
-        Serial.print(velocity, 2);
-        Serial.println(F(" m/s"));
+        // Serial.print(F("[EVENT] Descent detected -> DescentState"));
+        // Serial.print(F(" | distance_fallen: "));
+        // Serial.print(distanceFallen, 2);
+        // Serial.print(F(" m | velocity: "));
+        // Serial.print(velocity, 2);
+        // Serial.println(F(" m/s"));
 
         ctx.logBegin();
         ctx.logPrint(F("[EVENT] Descent detected -> DescentState"));

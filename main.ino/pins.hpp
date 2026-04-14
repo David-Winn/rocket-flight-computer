@@ -1,13 +1,13 @@
 #pragma once
 
 #define LED0 2
-#define BUTTON 3
+#define BUTTON_1 3
 #define LED1 4
-#define PARACHUTE_PIN 5
+#define PARACHUTE_PIN 5 // brown 
 #define LED2 6
-#define LAUNCHBUTTON 7
+#define BUTTON_2 7
 #define LED3 8
-#define RELAY_1 9
+#define STAGE2_IGNITION_PIN 9
 
 #define CS_SD 10  
 #define MOSI 11

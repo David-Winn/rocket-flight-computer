@@ -15,5 +15,5 @@ private:
     DistanceAlgorithm distanceAlg;
     unsigned long lastUpdateMicros = 0;
     unsigned long entryMs = 0;
-
+    unsigned long deployStartTime = 0;
 }; 

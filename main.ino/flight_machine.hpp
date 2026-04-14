@@ -14,7 +14,7 @@ public:
     // wire states and set initial state
     void start();
 
-    // called from Arduino loop
+    // called from main loop
     void update();
 
     FlightContext ctx;

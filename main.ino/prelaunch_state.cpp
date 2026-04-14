@@ -1,13 +1,12 @@
 #include "prelaunch_state.hpp"
 #include "boost_state.hpp"
 #include "flight_context.hpp"
+#include "flight_config.hpp"
 #include <Arduino.h>
 
-// Launch detected when vertical acceleration exceeds this threshold
-static constexpr float LAUNCH_ACCEL_THRESHOLD = 0.1f;  // 
 
 void PrelaunchState::enter(FlightContext& ctx) {
-    Serial.println(F("[STATE] Prelaunch enter"));
+    // Serial.println(F("[STATE] Prelaunch enter"));
     ctx.logBegin();
     ctx.logPrintln(F("[STATE] Prelaunch enter"));
     ctx.logEnd();
@@ -17,18 +16,18 @@ void PrelaunchState::enter(FlightContext& ctx) {
 void PrelaunchState::update(FlightContext& ctx) {
 
     // Detect sustained upward acceleration
-    if (ctx.zA < -LAUNCH_ACCEL_THRESHOLD) {
+    if (ctx.zA > LAUNCH_ACCEL_THRESHOLD) {
         consecutiveHighAccel++;
     } else {
         consecutiveHighAccel = 0;
     }
 
-    // Launch confirmed after 3 consecutive readings above threshold 
-    if (consecutiveHighAccel >= 3) {
-        Serial.print(F("[EVENT] Launch detected -> BoostState"));
-        Serial.print(F(" | accel: "));
-        Serial.print(-ctx.zA, 2);
-        Serial.println(F(" m/s^2"));
+    // Launch confirmed after consecutive readings above threshold 
+    if (consecutiveHighAccel >= LAUNCH_CONSECUTIVE) {
+        // Serial.print(F("[EVENT] Launch detected -> BoostState"));
+        // Serial.print(F(" | accel: "));
+        // Serial.print(-ctx.zA, 2);
+        // Serial.println(F(" m/s^2"));
 
         ctx.logBegin();
         ctx.logPrint(F("[EVENT] Launch detected -> BoostState"));
@@ -48,7 +47,7 @@ void PrelaunchState::update(FlightContext& ctx) {
 }
 
 void PrelaunchState::exit(FlightContext& ctx) {
-    Serial.println(F("[STATE] Prelaunch exit"));
+    // Serial.println(F("[STATE] Prelaunch exit"));
     ctx.logBegin();
     ctx.logPrintln(F("[STATE] Prelaunch exit"));
     ctx.logEnd();

@@ -2,14 +2,12 @@
 #include "apogee_state.hpp"
 #include "flight_context.hpp"
 #include "distance_alg.hpp"
+#include "flight_config.hpp"
 #include <Arduino.h>
 
-// Apogee detected when upward velocity becomes downward
-static constexpr float VELOCITY_THRESHOLD = -0.5f;  
-static constexpr int APOGEE_CONSECUTIVE = 3;  // Require some number of consecutive readings below threshold
 
 void CoastState::enter(FlightContext& ctx) {
-    Serial.println(F("[STATE] Coast enter"));
+    // Serial.println(F("[STATE] Coast enter"));
     ctx.logBegin();
     ctx.logPrintln(F("[STATE] Coast enter"));
     ctx.logEnd();
@@ -30,18 +28,18 @@ void CoastState::update(FlightContext& ctx) {
     distanceAlg.update(ctx.zA, dtSeconds);
     float velocity = distanceAlg.getVelocity();
 
-    // Detect when velocity becomes negative for transitioning from coast to descent 
-    if (velocity < VELOCITY_THRESHOLD) {
+    // NOTE: Velocity is negative while climbing, flips positive at apogee 
+    if (velocity > APOGEE_VELOCITY_THRESHOLD) {
         consecutiveNegativeVelocity++;
     } else {
         consecutiveNegativeVelocity = 0;
     }
 
     if (consecutiveNegativeVelocity >= APOGEE_CONSECUTIVE) {
-        Serial.print(F("[EVENT] Apogee detected -> ApogeeState"));
-        Serial.print(F(" | velocity: "));
-        Serial.print(velocity, 2);
-        Serial.println(F(" m/s"));
+        // Serial.print(F("[EVENT] Apogee detected -> ApogeeState"));
+        // Serial.print(F(" | velocity: "));
+        // Serial.print(velocity, 2);
+        // Serial.println(F(" m/s"));
 
         ctx.logBegin();
         ctx.logPrint(F("[EVENT] Apogee detected -> ApogeeState"));
@@ -55,7 +53,7 @@ void CoastState::update(FlightContext& ctx) {
 }
 
 void CoastState::exit(FlightContext& ctx) {
-    Serial.println(F("[STATE] Coast exit"));
+    // Serial.println(F("[STATE] Coast exit"));
     ctx.logBegin();
     ctx.logPrintln(F("[STATE] Coast exit"));
     ctx.logEnd();

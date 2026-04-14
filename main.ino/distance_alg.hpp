@@ -8,7 +8,7 @@ public:
     void reset();
     
     // Update with new acceleration reading and time change
-    // accel: acceleration in m/s² (positive = upward)
+    // accel: acceleration in g's (positive = upward)
     // dtSeconds: time change since last update in seconds
     void update(float accel, float dtSeconds);
     
@@ -21,4 +21,6 @@ public:
 private:
     float velocity;    // Current velocity (m/s)
     float distance;    // Current distance from apogee (m)
+    float filteredAccel;
+    const float ALPHA = 0.0f;
 };

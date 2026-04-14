@@ -1,5 +1,7 @@
 #include "flight_context.hpp"
 #include "flight_state.hpp"
+#include "flight_config.hpp"
+#include "descent_state.hpp"
 #include <Arduino_LSM6DS3.h>
 
 FlightContext::FlightContext() {
@@ -7,6 +9,7 @@ FlightContext::FlightContext() {
   stateEntryTime = 0;
   fileName[0] = '\0';
   logFileName[0] = '\0';
+  bufferCount = 0;
 
   // Initialize failsafe
   launchTime = 0;
@@ -20,8 +23,8 @@ void FlightContext::initHardware() {
   pinMode(LED1, OUTPUT);
   pinMode(LED2, OUTPUT);
   pinMode(LED3, OUTPUT);
-  pinMode(BUTTON, INPUT);
-  pinMode(LAUNCHBUTTON, INPUT);
+  pinMode(BUTTON_1, INPUT);
+  pinMode(BUTTON_2, INPUT);
   pinMode(PARACHUTE_PIN, OUTPUT);
 
   Serial.begin(115200);
@@ -29,7 +32,7 @@ void FlightContext::initHardware() {
 
 
   if (!SD.begin(CS_SD)) {
-    Serial.println(F("Error with SD"));
+    // Serial.println(F("Error with SD"));
     while (1) {
       digitalWrite(LED0, LOW);
     }
@@ -42,6 +45,7 @@ void FlightContext::initHardware() {
   char testName[20];
   int fileNum = 1;
   
+  // Log file for telem data
   strcpy(testName, "data.txt");
   if (!SD.exists(testName)) {
     strcpy(fileName, testName);
@@ -52,17 +56,17 @@ void FlightContext::initHardware() {
     } while (SD.exists(testName) && fileNum < 1000);
     
     strcpy(fileName, testName);
-    Serial.print(F("File: "));
-    Serial.println(fileName);
+    // Serial.print(F("File: "));
+    // Serial.println(fileName);
   }
 
   File file = SD.open(fileName, FILE_WRITE);
   if (!file) {
-    Serial.println(F("File create error"));
+    // Serial.println(F("File create error"));
   }
   file.close();
 
-  // Create matching log file for event logging
+  // File for event log
   {
     int logNum = 1;
     char testLog[20];
@@ -76,8 +80,8 @@ void FlightContext::initHardware() {
       } while (SD.exists(testLog) && logNum < 1000);
       strcpy(logFileName, testLog);
     }
-    Serial.print(F("Log file: "));
-    Serial.println(logFileName);
+    // Serial.print(F("Log file: "));
+    // Serial.println(logFileName);
 
     File lf = SD.open(logFileName, FILE_WRITE);
     if (lf) {
@@ -95,25 +99,26 @@ void FlightContext::initHardware() {
 
   delay(100); // Allow time for first accel reading 
 
-  Serial.print(F("Accel rate: "));
-  Serial.print(IMU.accelerationSampleRate());
-  Serial.println(F(" Hz"));
+  // Serial.print(F("Accel rate: "));
+  // Serial.print(IMU.accelerationSampleRate());
+  // Serial.println(F(" Hz"));
 
-  // Wait for first accelerometer reading (up to 500ms)
-  unsigned long imuWait = millis();
-  while (!IMU.accelerationAvailable()) {
-      if (millis() - imuWait > 500) {
-          Serial.println(F("Accel error"));
-          while (1) {
-              digitalWrite(LED1, HIGH);
-              delay(100);
-              digitalWrite(LED1, LOW);
-              delay(100);
-          }
-      }
-      delay(10);
-  }
-Serial.println(F("Accel OK"));
+  // // Wait for first accelerometer reading 
+  // unsigned long imuWait = millis();
+  // while (!IMU.accelerationAvailable()) {
+  //     if (millis() - imuWait > 500) {
+  //         Serial.println(F("Accel error"));
+  //         while (1) {
+  //             digitalWrite(LED1, HIGH);
+  //             delay(100);
+  //             digitalWrite(LED1, LOW);
+  //             delay(100);
+  //         }
+  //     }
+  //     delay(10);
+  // }
+  
+// Serial.println(F("Accel OK"));
 digitalWrite(LED1, HIGH);
 
 
@@ -145,35 +150,69 @@ void FlightContext::readSensors() {
   }
 }
 
-void FlightContext::writeTelemetry() {
+// Store current sensor data in buffer 
+void FlightContext::bufferTelemetry() {
   if (!collecting) {
     digitalWrite(LED3, LOW);
     return;
   }
 
-  File file = SD.open(fileName, FILE_WRITE);
+  if (bufferCount < TELEMETRY_BUFFER_SIZE) {
+    TelemSample& s = buffer[bufferCount];
+    s.xA = xA;
+    s.yA = yA;
+    s.zA = zA;
+    s.xG = xG;
+    s.yG = yG;
+    s.zG = zG;
+    s.timestamp = millis();
+    bufferCount++;
+  }
+  digitalWrite(LED3, HIGH);
+}
 
+// Write buffer to SD when full 
+void FlightContext::flushTelemetry() {
+  if (bufferCount == 0) return;
+
+  File file = SD.open(fileName, FILE_WRITE);
   if (!file) {
     digitalWrite(LED0, LOW);
     return;
   }
 
-  file.print(xA);
-  file.print(',');
-  file.print(yA);
-  file.print(',');
-  file.print(zA);
-  file.print(',');
-  file.print(xG);
-  file.print(',');
-  file.print(yG);
-  file.print(',');
-  file.print(zG);
-  file.print(',');
-  file.println(millis());
-  file.close();
+  // Write buffer as binary 
+  file.write((uint8_t*)buffer, bufferCount * sizeof(TelemSample));
+  file.flush(); 
+  // file.close();  // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  bufferCount = 0;
+}
 
-  digitalWrite(LED3, HIGH);
+//   for (int i = 0; i < bufferCount; i++) {
+//     TelemSample& s = buffer[i];
+//     file.print(s.xA);
+//     file.print(',');
+//     file.print(s.yA);
+//     file.print(',');
+//     file.print(s.zA);
+//     file.print(',');
+//     file.print(s.xG);
+//     file.print(',');
+//     file.print(s.yG);
+//     file.print(',');
+//     file.print(s.zG);
+//     file.print(',');
+//     file.println(s.timestamp);
+//   }
+
+//   file.close();
+//   bufferCount = 0;
+// }
+
+void FlightContext::stopTelemetry() {
+  collecting = false;
+  flushTelemetry();
+  digitalWrite(LED3, LOW);
 }
 
 void FlightContext::tick() {
@@ -215,7 +254,7 @@ void FlightContext::armFailsafe() {
   launchTime = millis();
   failsafeArmed = true;
   failsafeTriggered = false;
-  Serial.println(F("[EVENT] FAILSAFE ARMED"));
+  // Serial.println(F("[EVENT] FAILSAFE ARMED"));
 
   logBegin();
   logPrintln(F("[EVENT] FAILSAFE ARMED"));
@@ -226,10 +265,10 @@ void FlightContext::checkFailsafe() {
   if (failsafeArmed && !failsafeTriggered) {
     unsigned long elapsed = millis() - launchTime;
     
-    if (elapsed >= FAILSAFE_TIMEOUT) {
-        Serial.println(F("* * * * * * * * * * * * * * * * * * * * *"));
-        Serial.println(F("[EVENT] FAILSAFE TRIGGERED -> PARACHUTE DEPLOYMENT!"));
-        Serial.println(F("* * * * * * * * * * * * * * * * * * * * *"));
+    if (elapsed >= FAILSAFE_TIMEOUT_MS) {
+        // Serial.println(F("* * * * * * * * * * * * * * * * * * * * *"));
+        // Serial.println(F("[EVENT] FAILSAFE TRIGGERED -> PARACHUTE DEPLOYMENT!"));
+        // Serial.println(F("* * * * * * * * * * * * * * * * * * * * *"));
 
         logBegin();
         logPrintln(F("* * * * * * * * * * * * * * * * * * * * *"));
@@ -242,7 +281,7 @@ void FlightContext::checkFailsafe() {
         digitalWrite(PARACHUTE_PIN, LOW);
         
        failsafeTriggered = true;
-       failsafeArmed = false;
+       failsafeArmed = false;       
     }
   }
 }
